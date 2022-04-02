@@ -48,7 +48,62 @@
     </size>
    </property>
    <property name="styleSheet">
-    <string notr="true"/>
+    <string notr="true">QScrollBar:vertical {
+     width: 16px;
+     margin: 0px 0px 0px 0px; 
+	 padding-top: 16px;                      /*上下保留箭头位置*/
+	 padding-bottom: 16px;
+	 padding-left: 2px;                      /*左右边距，不设置使用默认值会使得滑块比较小*/
+	 padding-right: 2px;
+     background: rgba(255,255,255,100%);    /*背景色*/
+}
+
+/* 滑块部分 */
+QScrollBar::handle:vertical {
+     background: rgb(200,200,200);
+     min-height: 16px;
+	 border-radius:4px;
+}
+
+QScrollBar::handle:vertical:hover {
+     background: rgb(180,180,180);
+     min-height: 16px;
+	 cursor: Pointing hand;
+}
+
+/* 下箭头部分 */
+ QScrollBar::add-line:vertical {
+     background: rgba(0,0,0,0%);
+     height: 16px;
+	 border-image:url(://new/prefix1/resources/images/dn_arrow.png);
+     subcontrol-position: bottom;
+}
+
+QScrollBar::add-line:vertical:hover {
+     background: rgba(,0,0,40%);
+     height: 16px;
+     subcontrol-position: bottom;
+}
+
+/* 上箭头部分 */
+QScrollBar::sub-line:vertical {
+     background: rgba(0,0,0,0%);
+     height: 16px;
+	 border-image:url(://new/prefix1/resources/images/up_arrow.png);
+     subcontrol-position: top;
+}
+
+QScrollBar::sub-line:vertical:hover {
+     background: rgba(0,0,0,40%);
+     height: 16px;
+     subcontrol-position: top;
+}
+
+/* 当滚动条滚动的时候，上面的部分和下面的部分 */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+     background: rgba(0,0,0,10%);
+}
+</string>
    </property>
    <layout class="QGridLayout" name="gridLayout_3">
     <item row="0" column="1">
@@ -1034,6 +1089,9 @@ border-color: transparent</string>
               <pointsize>12</pointsize>
               <bold>true</bold>
              </font>
+            </property>
+            <property name="cursor" stdset="0">
+             <cursorShape>ArrowCursor</cursorShape>
             </property>
             <property name="mouseTracking">
              <bool>false</bool>

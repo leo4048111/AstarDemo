@@ -276,7 +276,7 @@ namespace Astar
         root = NULL;
     }
 
-#define COST_LIMIT 1500000
+#define COST_LIMIT 3000000
 
     std::vector<std::vector<uint64_t>> run(const uint64_t src, const uint64_t dst)
     {
@@ -299,6 +299,7 @@ namespace Astar
 
             if (cur.node->state == dst)
             {
+                LOG("Route is found at cost of " + QString::number(cost), Log::LogType::runtime);
                 std::stack<LPNode> s;
                 for (LPNode n = cur.node; n->parent != nullptr; n = n->parent)
                     s.push(n);

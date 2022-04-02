@@ -84,6 +84,7 @@ void MainWindow::slot_transferState(const State state)
             this->ui->puzzleStart->setEnabled(true);
             this->ui->puzzleDestination->setEnabled(true);
             this->ui->btnRun->setText("Run");
+            this->demoStateIdx = 0;
             break;
         }
         case State::VALIDATED:
@@ -119,15 +120,18 @@ void MainWindow::slot_transferState(const State state)
             this->ui->btnValidate->setEnabled(false);
             this->ui->btnShuffle->setEnabled(false);
             this->ui->btnRun->setEnabled(false);
-            this->ui->btnLastState->setEnabled(false);
             this->ui->btnNextState->setEnabled(true);
+            this->ui->btnLastState->setEnabled(true);
             this->ui->btnAutoDemo->setEnabled(true);
             this->ui->btnEndDemo->setEnabled(true);
             this->ui->puzzleStart->setEnabled(false);
             this->ui->puzzleDestination->setEnabled(false);
             this->ui->btnRun->setText("Run");
             this->ui->btnAutoDemo->setText("Auto Demonstrate");
-            this->demoStateIdx = 0;
+            if(this->demoStateIdx == this->route.size() - 1)
+                this->ui->btnNextState->setEnabled(false);
+            if(this->demoStateIdx == 0)
+                this->ui->btnLastState->setEnabled(false);
             break;
         }
         case State::AUTODEMO:
