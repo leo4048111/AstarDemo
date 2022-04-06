@@ -20,7 +20,11 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background: rgb(251,251,251)</string>
+   <string notr="true">QMainWindow
+{
+background: rgb(251,251,251)
+}
+</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
@@ -1053,8 +1057,12 @@ QPushButton
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">background:transparent;
-border-color: transparent</string>
+             <string notr="true">QLabel
+{
+background:transparent;
+border-color: transparent
+}
+</string>
             </property>
             <property name="frameShadow">
              <enum>QFrame::Sunken</enum>

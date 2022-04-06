@@ -1,9 +1,13 @@
 #include<ctime>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "astar.h"
 #include <algorithm>
 #include <QLibrary>
+
+static Astar::EstimateMethod usedEstimateMethod = Astar::EstimateMethod::DIF_BITS;
+static bool shouldDraw = true;
+
+#define MAX_DIF_NUM 10
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -63,6 +67,79 @@ MainWindow::MainWindow(QWidget *parent)
     //demonstration
     connect(this, &MainWindow::signal_autoDemo, this, &MainWindow::slot_autoNextState);
 
+    //drawing
+    this->drawWindow = new Drawing();
+    connect(this, &MainWindow::signal_openDrawWindow, this, &MainWindow::slot_openDrawWindow);
+    connect(this, &MainWindow::signal_drawSearchTree, this->drawWindow, &Drawing::slot_drawSearchTree);
+
+    //initialize button actions
+    std::vector<QAction*> actionArr;
+    QAction* actionUseEstimate1 = new QAction("Use Estimate1(Different bits)",this);
+    QAction* actionUseEstimate2 = new QAction("Use Estimate2(Different nums)",this);
+    QAction* actionUseEstimate3 = new QAction("Use Estimate3(Manhattan Distance)",this);
+    QAction* actionUseEstimate4 = new QAction("Use Estimate4(Horizontal Distance", this);
+    QAction* actionShowSearchTree = new QAction("Draw search tree", this);
+    actionArr.push_back(actionUseEstimate1);
+    actionArr.push_back(actionUseEstimate2);
+    actionArr.push_back(actionUseEstimate3);
+    actionArr.push_back(actionUseEstimate4);
+    for(auto elem: actionArr) elem->setCheckable(true);
+    actionUseEstimate1->setChecked(true);
+    actionShowSearchTree->setCheckable(true);
+    actionShowSearchTree->setChecked(true);
+
+    connect(actionShowSearchTree, &QAction::triggered, [=]()
+    {
+        shouldDraw = !shouldDraw;
+        actionShowSearchTree->setChecked(shouldDraw);
+    });
+
+    connect(actionUseEstimate1, &QAction::triggered, [=]()
+    {
+        for(auto elem: actionArr) elem->setChecked(false);
+        actionUseEstimate1->setChecked(true);
+        usedEstimateMethod = Astar::EstimateMethod::DIF_BITS;
+        LOG("Using estimate method:DIF_BITS.", Log::LogType::normal);
+    });
+
+    connect(actionUseEstimate2, &QAction::triggered, [=]()
+    {
+        for(auto elem: actionArr) elem->setChecked(false);
+        actionUseEstimate2->setChecked(true);
+        usedEstimateMethod = Astar::EstimateMethod::DIF_NUMS;
+        LOG("Using estimate method:DIF_NUMS.", Log::LogType::normal);
+    });
+
+    connect(actionUseEstimate3, &QAction::triggered, [=]()
+    {
+        for(auto elem: actionArr) elem->setChecked(false);
+        actionUseEstimate3->setChecked(true);
+        usedEstimateMethod = Astar::EstimateMethod::MANHATTAN_DISTANCE;
+        LOG("Using estimate method:MANHATTAN_DISTANCE.", Log::LogType::normal);
+    });
+
+    connect(actionUseEstimate4, &QAction::triggered, [=]()
+    {
+        for(auto elem: actionArr) elem->setChecked(false);
+        actionUseEstimate4->setChecked(true);
+        usedEstimateMethod = Astar::EstimateMethod::HORIZONTAL_DISTANCE;
+        LOG("Using estimate method:HORIZONTAL_DISTANCE.", Log::LogType::normal);
+    });
+
+    //initialize submenu
+    QMenu* subMenu = new QMenu(this);
+    subMenu->addAction(actionUseEstimate1);
+    subMenu->addAction(actionUseEstimate2);
+    subMenu->addAction(actionUseEstimate3);
+    subMenu->addAction(actionUseEstimate4);
+    subMenu->addAction(actionShowSearchTree);
+
+    ui->btnRun->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->btnRun, &QWidget::customContextMenuRequested, [=](const QPoint &pos)
+    {
+        subMenu->exec(QCursor::pos());
+    });
+
     //initial state
     TRANSFER_STATE(State::IDLE);
 }
@@ -72,83 +149,83 @@ void MainWindow::slot_transferState(const State state)
     this->state = state;
     switch(this->state)
     {
-        case State::IDLE:
-        {
-            this->ui->btnValidate->setEnabled(true);
-            this->ui->btnShuffle->setEnabled(true);
-            this->ui->btnRun->setEnabled(false);
-            this->ui->btnLastState->setEnabled(false);
+    case State::IDLE:
+    {
+        this->ui->btnValidate->setEnabled(true);
+        this->ui->btnShuffle->setEnabled(true);
+        this->ui->btnRun->setEnabled(false);
+        this->ui->btnLastState->setEnabled(false);
+        this->ui->btnNextState->setEnabled(false);
+        this->ui->btnAutoDemo->setEnabled(false);
+        this->ui->btnEndDemo->setEnabled(false);
+        this->ui->puzzleStart->setEnabled(true);
+        this->ui->puzzleDestination->setEnabled(true);
+        this->ui->btnRun->setText("Run");
+        this->demoStateIdx = 0;
+        break;
+    }
+    case State::VALIDATED:
+    {
+        this->ui->btnValidate->setEnabled(false);
+        this->ui->btnShuffle->setEnabled(true);
+        this->ui->btnRun->setEnabled(true);
+        this->ui->btnLastState->setEnabled(false);
+        this->ui->btnNextState->setEnabled(false);
+        this->ui->btnAutoDemo->setEnabled(false);
+        this->ui->btnEndDemo->setEnabled(false);
+        this->ui->puzzleStart->setEnabled(true);
+        this->ui->puzzleDestination->setEnabled(true);
+        this->ui->btnRun->setText("Run");
+        break;
+    }
+    case State::RUN:
+    {
+        this->ui->btnValidate->setEnabled(false);
+        this->ui->btnShuffle->setEnabled(false);
+        this->ui->btnRun->setEnabled(false);
+        this->ui->btnLastState->setEnabled(false);
+        this->ui->btnNextState->setEnabled(false);
+        this->ui->btnAutoDemo->setEnabled(false);
+        this->ui->btnEndDemo->setEnabled(false);
+        this->ui->puzzleStart->setEnabled(false);
+        this->ui->puzzleDestination->setEnabled(false);
+        this->ui->btnRun->setText("Running...");
+        break;
+    }
+    case State::DEMO:
+    {
+        this->ui->btnValidate->setEnabled(false);
+        this->ui->btnShuffle->setEnabled(false);
+        this->ui->btnRun->setEnabled(false);
+        this->ui->btnNextState->setEnabled(true);
+        this->ui->btnLastState->setEnabled(true);
+        this->ui->btnAutoDemo->setEnabled(true);
+        this->ui->btnEndDemo->setEnabled(true);
+        this->ui->puzzleStart->setEnabled(false);
+        this->ui->puzzleDestination->setEnabled(false);
+        this->ui->btnRun->setText("Run");
+        this->ui->btnAutoDemo->setText("Auto Demonstrate");
+        if(this->demoStateIdx == this->route.size() - 1)
             this->ui->btnNextState->setEnabled(false);
-            this->ui->btnAutoDemo->setEnabled(false);
-            this->ui->btnEndDemo->setEnabled(false);
-            this->ui->puzzleStart->setEnabled(true);
-            this->ui->puzzleDestination->setEnabled(true);
-            this->ui->btnRun->setText("Run");
-            this->demoStateIdx = 0;
-            break;
-        }
-        case State::VALIDATED:
-        {
-            this->ui->btnValidate->setEnabled(false);
-            this->ui->btnShuffle->setEnabled(true);
-            this->ui->btnRun->setEnabled(true);
+        if(this->demoStateIdx == 0)
             this->ui->btnLastState->setEnabled(false);
-            this->ui->btnNextState->setEnabled(false);
-            this->ui->btnAutoDemo->setEnabled(false);
-            this->ui->btnEndDemo->setEnabled(false);
-            this->ui->puzzleStart->setEnabled(true);
-            this->ui->puzzleDestination->setEnabled(true);
-            this->ui->btnRun->setText("Run");
-            break;
-        }
-        case State::RUN:
-        {
-            this->ui->btnValidate->setEnabled(false);
-            this->ui->btnShuffle->setEnabled(false);
-            this->ui->btnRun->setEnabled(false);
-            this->ui->btnLastState->setEnabled(false);
-            this->ui->btnNextState->setEnabled(false);
-            this->ui->btnAutoDemo->setEnabled(false);
-            this->ui->btnEndDemo->setEnabled(false);
-            this->ui->puzzleStart->setEnabled(false);
-            this->ui->puzzleDestination->setEnabled(false);
-            this->ui->btnRun->setText("Running...");
-            break;
-        }
-        case State::DEMO:
-        {
-            this->ui->btnValidate->setEnabled(false);
-            this->ui->btnShuffle->setEnabled(false);
-            this->ui->btnRun->setEnabled(false);
-            this->ui->btnNextState->setEnabled(true);
-            this->ui->btnLastState->setEnabled(true);
-            this->ui->btnAutoDemo->setEnabled(true);
-            this->ui->btnEndDemo->setEnabled(true);
-            this->ui->puzzleStart->setEnabled(false);
-            this->ui->puzzleDestination->setEnabled(false);
-            this->ui->btnRun->setText("Run");
-            this->ui->btnAutoDemo->setText("Auto Demonstrate");
-            if(this->demoStateIdx == this->route.size() - 1)
-                this->ui->btnNextState->setEnabled(false);
-            if(this->demoStateIdx == 0)
-                this->ui->btnLastState->setEnabled(false);
-            break;
-        }
-        case State::AUTODEMO:
-        {
-            this->ui->btnValidate->setEnabled(false);
-            this->ui->btnShuffle->setEnabled(false);
-            this->ui->btnRun->setEnabled(false);
-            this->ui->btnLastState->setEnabled(false);
-            this->ui->btnNextState->setEnabled(false);
-            this->ui->btnAutoDemo->setEnabled(true);
-            this->ui->btnEndDemo->setEnabled(false);
-            this->ui->puzzleStart->setEnabled(false);
-            this->ui->puzzleDestination->setEnabled(false);
-            this->ui->btnRun->setText("Run");
-            this->ui->btnAutoDemo->setText("Stop");
-            break;
-        }
+        break;
+    }
+    case State::AUTODEMO:
+    {
+        this->ui->btnValidate->setEnabled(false);
+        this->ui->btnShuffle->setEnabled(false);
+        this->ui->btnRun->setEnabled(false);
+        this->ui->btnLastState->setEnabled(false);
+        this->ui->btnNextState->setEnabled(false);
+        this->ui->btnAutoDemo->setEnabled(true);
+        this->ui->btnEndDemo->setEnabled(false);
+        this->ui->puzzleStart->setEnabled(false);
+        this->ui->puzzleDestination->setEnabled(false);
+        this->ui->btnRun->setText("Run");
+        this->ui->btnAutoDemo->setText("Stop");
+        break;
+    }
     }
 }
 
@@ -184,34 +261,34 @@ void MainWindow::setBlock(QObject *block, const int num)
     btn->setText(QString::number(num));
     switch(num)
     {
-        case 0:
+    case 0:
         btn->setStyleSheet("QPushButton{color:rgb(0, 0, 0);background-color:rgb(255, 255, 255)}");
         break;
-        case 1:
+    case 1:
         btn->setStyleSheet("QPushButton{color:rgb(10,255,255);background-color:rgb(1, 1, 1)}");
         break;
-        case 2:
+    case 2:
         btn->setStyleSheet("QPushButton{color:rgb(60,179,113);background-color:rgb(1, 1, 1)}");
         break;
-        case 3:
+    case 3:
         btn->setStyleSheet("QPushButton{color:rgb(255,140,0);background-color:rgb(1, 1, 1)}");
         break;
-        case 4:
+    case 4:
         btn->setStyleSheet("QPushButton{color:rgb(255,105,180);background-color:rgb(1, 1, 1)}");
         break;
-        case 5:
+    case 5:
         btn->setStyleSheet("QPushButton{color:rgb(148,0,211);background-color:rgb(1, 1, 1)}");
         break;
-        case 6:
+    case 6:
         btn->setStyleSheet("QPushButton{color:rgb(30,144,255);background-color:rgb(1, 1, 1)}");
         break;
-        case 7:
+    case 7:
         btn->setStyleSheet("QPushButton{color:rgb(255,69,0);background-color:rgb(1, 1, 1)}");
         break;
-        case 8:
+    case 8:
         btn->setStyleSheet("QPushButton{color:rgb(255,127,80);background-color:rgb(1, 1, 1)}");
         break;
-        default:
+    default:
         break;
     }
 
@@ -226,6 +303,7 @@ void MainWindow::slot_validateStates()
     if(Astar::validate(Astar::toBits(initial), Astar::toBits(destination)))
     {
         LOG("States are valid.", Log::LogType::normal);
+        LOG("Right click run button to select estimate method, left click run button to start running.", Log::LogType::normal);
         TRANSFER_STATE(State::VALIDATED);
     }
     else
@@ -240,16 +318,16 @@ void MainWindow::slot_onReceiveLog(const QString str, const Log::LogType type)
     QString s;
     switch(type)
     {
-        case Log::LogType::normal:
+    case Log::LogType::normal:
         s = "[Log]";
         break;
-        case Log::LogType::error:
+    case Log::LogType::error:
         s = "[Error]";
         break;
-        case Log::LogType::runtime:
+    case Log::LogType::runtime:
         s = "[Runtime]";
         break;
-        default:
+    default:
         s = "[Log]";
         break;
     }
@@ -266,7 +344,7 @@ void MainWindow::slot_shuffleStates()
     {
         std::random_shuffle(arr1.begin(), arr1.end());
         std::random_shuffle(arr2.begin(), arr2.end());
-    }while(!Astar::validate(Astar::toBits(arr1), Astar::toBits(arr2)) || (Astar::calDifference(Astar::toBits(arr1), Astar::toBits(arr2)) > 3));
+    }while(!Astar::validate(Astar::toBits(arr1), Astar::toBits(arr2)) || (Astar::estimate2(Astar::toBits(arr1), Astar::toBits(arr2)) > MAX_DIF_NUM));
 
     for(int i = 0; i < 9;i++)
     {
@@ -360,6 +438,8 @@ void MainWindow::slot_autoDemo()
     {
         this->isAutoDemo = false;
         this->hAutoDemoThread = nullptr;
+        this->ui->btnAutoDemo->setEnabled(false);
+        this->ui->btnAutoDemo->setText("Stopping...");
     }
 
 }
@@ -369,10 +449,13 @@ DWORD WINAPI FindRouteThread(LPVOID params)
     MainWindow* pThis = reinterpret_cast<MainWindow*>(params);
     qRegisterMetaType<Log::LogType>("Log::LogType");
     qRegisterMetaType<MainWindow::State>("MainWindow::State");
+    qRegisterMetaType<Astar::LPNode>("Astar::LPNode");
 
     pThis->findRoute();
     return NULL;
 }
+
+#define DRAW_COST_LIMIT 10
 
 void MainWindow::findRoute()
 {
@@ -382,7 +465,8 @@ void MainWindow::findRoute()
     for(auto num: puzzleDestination) destination.push_back(num->text().toInt());
 
     DWORD startTime = clock();
-    this->route = Astar::run(Astar::toBits(initial), Astar::toBits(destination));
+    auto result = Astar::run(Astar::toBits(initial), Astar::toBits(destination), usedEstimateMethod);
+    this->route = result.route;
     DWORD endTime = clock();
 
     QString str = "Algorithm returns after " + QString::number((endTime - startTime)) + " ms...";
@@ -397,7 +481,25 @@ void MainWindow::findRoute()
     {
         LOG("Route has been found.", Log::LogType::normal);
         TRANSFER_STATE(State::DEMO);
+        if(shouldDraw)
+        {
+            if(result.cost > DRAW_COST_LIMIT)
+            {
+                LOG("Cost exceeds drawable cost limit, can't draw search tree.", Log::LogType::error);
+            }
+            else
+            {
+                Astar::LPNode root = Astar::runDrawing(Astar::toBits(initial), Astar::toBits(destination), usedEstimateMethod);
+                emit signal_openDrawWindow(root);
+            }
+        }
     }
+}
+
+void MainWindow::slot_openDrawWindow(Astar::LPNode root)
+{
+    this->drawWindow->show();
+    emit signal_drawSearchTree(root);
 }
 
 void MainWindow::slot_findRoute()

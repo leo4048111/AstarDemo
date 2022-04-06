@@ -35,4 +35,9 @@ signals:
     Log::getInstance()->log(str, type);\
 }
 
+#define LOG_TO_FILE(str, type) \
+{\
+    \
+}
+
 #endif // LOG_H

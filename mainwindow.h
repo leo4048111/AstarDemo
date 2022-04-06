@@ -3,9 +3,15 @@
 
 #include <Windows.h>
 #include <QMainWindow>
+#include <QAction>
+#include <QMenu>
+
 #include "log.h"
 #include "ui_mainwindow.h"
 #include "qblock.h"
+#include "astar.h"
+#include "drawing.h"
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -49,6 +55,8 @@ private:
 
     bool isAutoDemo{false};
 
+    Drawing* drawWindow{nullptr};
+
 private:
     void setBlock(QObject* block, const int num);
 
@@ -57,24 +65,31 @@ signals:
 
     void signal_autoDemo();
 
+    void signal_drawSearchTree(Astar::LPNode root);
+
+    void signal_openDrawWindow(Astar::LPNode root);
+
 private slots:
-   //log
-   void slot_onReceiveLog(const QString str, const Log::LogType type);
+    //log
+    void slot_onReceiveLog(const QString str, const Log::LogType type);
 
-   //button slots
-   void slot_increaseNum();
-   void slot_decreaseNum();
-   void slot_validateStates();
-   void slot_shuffleStates();
-   void slot_findRoute();
-   void slot_lastState();
-   void slot_nextState();
-   void slot_autoDemo();
-   void slot_endDemo();
-   void slot_autoNextState();
+    //button slots
+    void slot_increaseNum();
+    void slot_decreaseNum();
+    void slot_validateStates();
+    void slot_shuffleStates();
+    void slot_findRoute();
+    void slot_lastState();
+    void slot_nextState();
+    void slot_autoDemo();
+    void slot_endDemo();
+    void slot_autoNextState();
 
-   //state transfer
-   void slot_transferState(const MainWindow::State state);
+    //state transfer
+    void slot_transferState(const MainWindow::State state);
+
+    //drawing
+    void slot_openDrawWindow(Astar::LPNode root);
 };
 
 #define TRANSFER_STATE(state) \
