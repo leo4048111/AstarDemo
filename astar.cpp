@@ -293,11 +293,11 @@ namespace Astar
 #define COST_LIMIT 4000000
 
 //树结点生成宏
-#define INSERT_IF_VALID(parent,s, dir, method)  \
+#define INSERT_IF_VALID(parent,s, dir, method, cost)  \
 {\
     if(s != NULL && (closeMap.find(s) == closeMap.end())) \
     {\
-        LPNode n = new Node(parent, s, cost, method(s, dst));  \
+        LPNode n = new Node(parent, s, cost, method(s, dst), false);  \
         open.push(NodeWrapper{ n });  \
         if (parent != NULL)   \
         { \
@@ -316,11 +316,10 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
             LOG("Can't solve.", Log::LogType::runtime);
             return ret;
         }
-
-        uint32_t cost = 0;    //耗散值
+        uint32_t resultCost = 0; //最终路径耗散
         std::priority_queue<NodeWrapper, std::vector<NodeWrapper>, std::greater<NodeWrapper>> open;   //优先队列
         std::map<uint64_t, bool> closeMap;   //close表，防止重复访问相同局面
-        LPNode root = new Node(nullptr, NULL, NULL, NULL);    //初始化树根
+        LPNode root = new Node(nullptr, NULL, NULL, NULL, false);    //初始化树根
         FuncpEstimateMethod pEstimateMethod = nullptr;       //使用的启发函数
         switch(method)
         {
@@ -338,7 +337,7 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
             break;
         }
 
-        INSERT_IF_VALID(root, src, NULL, pEstimateMethod);
+        INSERT_IF_VALID(root, src, NULL, pEstimateMethod, 0);
         while (!open.empty())     //算法运行
         {
             NodeWrapper cur = open.top();
@@ -346,7 +345,7 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
 
             if (cur.node->state == dst)    //找到目标状态
             {
-                LOG("Route is found at cost of " + QString::number(cost), Log::LogType::runtime);
+                LOG("Route is found at cost of " + QString::number(resultCost), Log::LogType::runtime);
                 std::stack<LPNode> s;
                 for (LPNode n = cur.node; n->parent != nullptr; n = n->parent)
                     s.push(n);
@@ -358,7 +357,7 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
                 break;
             };
 
-            if(cost > COST_LIMIT)      //耗散过大
+            if(cur.node->cost > COST_LIMIT)      //耗散过大
             {
                 LOG("Cost exceeds limit, aborting...", Log::LogType::runtime);
                 break;
@@ -366,17 +365,19 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
 
             uint64_t nextState = NULL;
             nextState = move(cur.node->state, Dir::up);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::up, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::up, pEstimateMethod, cur.node->cost+1);
             nextState = move(cur.node->state, Dir::down);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::down, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::down, pEstimateMethod, cur.node->cost+1);
             nextState = move(cur.node->state, Dir::left);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::left, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::left, pEstimateMethod, cur.node->cost+1);
             nextState = move(cur.node->state, Dir::right);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::right, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::right, pEstimateMethod, cur.node->cost+1);
             closeMap.insert(std::make_pair(cur.node->state, true));
-            cost++;
+
+            resultCost++;
         }
-        ret.cost = cost;
+
+        ret.cost = resultCost;
         deleteTree(root);
         return ret;
     }
@@ -397,13 +398,22 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
         return ret;
     }
 
+    uint32_t getChildCnt(const LPNode node)
+    {
+        uint32_t ret = 0;
+        for(uint32_t i = 0;i<4;i++)
+            if(node->children[i] != NULL) ret++;
+
+        return ret;
+    }
+
     LPNode runDrawing(const uint64_t src, const uint64_t dst, const Astar::EstimateMethod method)
     {
         std::vector<std::vector<uint64_t>> ret;
-        uint32_t cost = 0;    //耗散值
+        uint32_t searchCost = 0;    //搜索耗散值
         std::priority_queue<NodeWrapper, std::vector<NodeWrapper>, std::greater<NodeWrapper>> open;   //优先队列
         std::map<uint64_t, bool> closeMap;   //close表，防止重复访问相同局面
-        LPNode root = new Node(nullptr, NULL, NULL, NULL);    //初始化树根
+        LPNode root = new Node(nullptr, NULL, NULL, NULL, false);    //初始化树根
         FuncpEstimateMethod pEstimateMethod = nullptr;       //使用的启发函数
         switch(method)
         {
@@ -421,7 +431,7 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
             break;
         }
 
-        INSERT_IF_VALID(root, src, NULL, pEstimateMethod);
+        INSERT_IF_VALID(root, src, NULL, pEstimateMethod, 0);
         while (!open.empty())     //算法运行
         {
             NodeWrapper cur = open.top();
@@ -429,19 +439,12 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
 
             if (cur.node->state == dst)    //找到目标状态
             {
-                LOG("Route is found at cost of " + QString::number(cost), Log::LogType::runtime);
-                std::stack<LPNode> s;
                 for (LPNode n = cur.node; n->parent != nullptr; n = n->parent)
-                    s.push(n);
-                while (!s.empty())
-                {
-                    ret.push_back(toVector(s.top()->state));
-                    s.pop();
-                }
+                    n->isRoute = true;
                 break;
             };
 
-            if(cost > COST_LIMIT)      //耗散过大
+            if(cur.node->cost > COST_LIMIT)      //耗散过大
             {
                 LOG("Cost exceeds limit, aborting...", Log::LogType::runtime);
                 break;
@@ -449,15 +452,14 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
 
             uint64_t nextState = NULL;
             nextState = move(cur.node->state, Dir::up);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::up, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::up, pEstimateMethod, cur.node->cost+1);
             nextState = move(cur.node->state, Dir::down);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::down, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::down, pEstimateMethod, cur.node->cost+1);
             nextState = move(cur.node->state, Dir::left);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::left, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::left, pEstimateMethod, cur.node->cost+1);
             nextState = move(cur.node->state, Dir::right);
-            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::right, pEstimateMethod);
+            INSERT_IF_VALID(cur.node, nextState, (uint32_t)Dir::right, pEstimateMethod, cur.node->cost+1);
             closeMap.insert(std::make_pair(cur.node->state, true));
-            cost++;
         }
 
         return root;

@@ -455,7 +455,7 @@ DWORD WINAPI FindRouteThread(LPVOID params)
     return NULL;
 }
 
-#define DRAW_COST_LIMIT 10
+#define DRAW_COST_LIMIT 30
 
 void MainWindow::findRoute()
 {

@@ -21,13 +21,15 @@ namespace Astar
         uint64_t state;   //当前状态
         uint32_t cost;    //路径耗散
         uint32_t estimation;   //启发值
+        bool isRoute;    //该结点是否在最优路径上
 
-        _Node(_Node* parent, uint64_t state, uint32_t cost, uint32_t estimation)
+        _Node(_Node* parent, uint64_t state, uint32_t cost, uint32_t estimation, bool isRoute)
         {
             this->parent = parent;
             this->state = state;
             this->cost = cost;
             this->estimation = estimation;
+            this->isRoute = isRoute;
         }
 
     }Node, *LPNode;
@@ -108,6 +110,9 @@ namespace Astar
 
     //删除搜索树
     void deleteTree(LPNode& root);
+
+    //返回节点孩子个数
+    uint32_t getChildCnt(const LPNode node);
 
     RunResult run(const uint64_t src, const uint64_t dst, const Astar::EstimateMethod method);
 
