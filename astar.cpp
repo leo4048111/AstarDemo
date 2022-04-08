@@ -407,10 +407,21 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
         return ret;
     }
 
+    uint32_t getTreeDepth(const LPNode root)
+    {
+        uint32_t ret = 0;
+        if(root == NULL) return ret;
+        for(uint32_t i = 0;i<4;i++)
+        {
+            ret = std::max(ret, getTreeDepth(root->children[i]) + 1);
+        }
+
+        return ret;
+    }
+
     LPNode runDrawing(const uint64_t src, const uint64_t dst, const Astar::EstimateMethod method)
     {
-        std::vector<std::vector<uint64_t>> ret;
-        uint32_t searchCost = 0;    //搜索耗散值
+        std::vector<std::vector<uint64_t>> ret;  //搜索耗散值
         std::priority_queue<NodeWrapper, std::vector<NodeWrapper>, std::greater<NodeWrapper>> open;   //优先队列
         std::map<uint64_t, bool> closeMap;   //close表，防止重复访问相同局面
         LPNode root = new Node(nullptr, NULL, NULL, NULL, false);    //初始化树根

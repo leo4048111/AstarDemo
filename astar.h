@@ -123,6 +123,9 @@ namespace Astar
 
     //节点信息格式化
     std::string getNodeInfo(const LPNode node);
+
+    //获取搜索树深度
+    uint32_t getTreeDepth(const LPNode root);
 }
 
 #endif

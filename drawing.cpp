@@ -3,16 +3,16 @@
 
 #include <QPainter>
 #include <QPushButton>
+#include <QSlider>
 #include <QFont>
 #include <queue>
 
 #include "astar.h"
 
-const int g_drawLayout[6] = {800, 700, 600, 500, 400, 284};
 static Astar::LPNode g_root = nullptr;
 const int g_drawWindowWidth = 1920;
 const int g_drawWindowHeight = 1080;
-const int g_connectorHeight = 20;
+const int g_connectorHeight = 30;
 const int g_nodeWrapperHeight = 140;
 const int g_nodeWrapperWidth = 70;
 const int g_stateTextHeight = g_nodeWrapperHeight/2;
@@ -23,15 +23,38 @@ Drawing::Drawing(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    this->setMaximumSize(g_drawWindowWidth, g_drawWindowHeight);
+    //set window title
+    this->setWindowTitle("Search Tree Demo");
+
+    this->setMaximumSize(99999, 99999);
     this->setMinimumSize(g_drawWindowWidth, g_drawWindowHeight);
 }
 
 void Drawing::slot_drawSearchTree(Astar::LPNode root)
 {
     g_root = root;
+    uint32_t depth = Astar::getTreeDepth(g_root->children[0]);
+    for(uint32_t i = 0;i < depth - 1;i++)
+    {
+        auto s = new QSlider();
+        s->setOrientation(Qt::Orientation::Horizontal);
+        ui->vLayout->addWidget(s);
+        vecSlider.push_back(s);
+        mapSliderDepth.insert(std::make_pair(s, i));
+        s->setValue((depth - 1 - i) * 10);
+        g_drawLayout.push_back(g_drawWindowWidth * s->value() / 100);
+        connect(s, &QSlider::valueChanged, this, &Drawing::slot_valueChanged);
+    }
+
     update();
-    //Astar::deleteTree(root);
+}
+
+void Drawing::slot_valueChanged(int value)
+{
+    QSlider* s = qobject_cast<QSlider*>(sender());
+    int depth = (*(this->mapSliderDepth.find(s))).second;
+    this->g_drawLayout[depth] = value/100.0f * g_drawWindowWidth;
+    update();
 }
 
 void Drawing::paintEvent(QPaintEvent *e)
@@ -45,6 +68,7 @@ void Drawing::paintEvent(QPaintEvent *e)
         q.pop();
         paintNode(nodeWrapper.node, nodeWrapper.midX, nodeWrapper.midY);
         int childCnt = Astar::getChildCnt(nodeWrapper.node);
+        if(!childCnt) continue;
         int gap = (((childCnt - 1) * 2) ? g_drawLayout[nodeWrapper.depth] / ((childCnt - 1) * 2):0);
         int seq = 0;
         for(uint32_t i = 0;i<4;i++)
@@ -73,19 +97,18 @@ void Drawing::paintNode(const Astar::LPNode node, const int midX, const int midY
     QString nodeInfo = QString::fromStdString(Astar::getNodeInfo(node));
 
     //painters
-    QPainter bgPainter(this);
-    QPainter stateTextPainter(this);
-    QPainter stateCostPainter(this);
+    QPainter painter(this);
+
     //brushes
     QBrush transparentBrush(Qt::transparent);
     QBrush bgBrush(Qt::gray);
 
     //pens
-    QPen rectOutlinePen(Qt::DashDotDotLine);
+    QPen rectOutlinePen(Qt::SolidLine);
     if(node->isRoute)
     {
         rectOutlinePen.setColor(Qt::red);
-        rectOutlinePen.setWidth(5);
+        rectOutlinePen.setWidth(4);
     }
     else
     {
@@ -94,27 +117,36 @@ void Drawing::paintNode(const Astar::LPNode node, const int midX, const int midY
     }
 
     QPen stateTextPen(Qt::SolidLine);
-    stateTextPen.setColor(Qt::black);
+    if(node->isRoute)
+    {
+        stateTextPen.setColor(Qt::black);
+        stateTextPen.setWidth(3);
+    }
+    else
+    {
+        stateTextPen.setColor(Qt::gray);
+        stateTextPen.setWidth(2);
+    }
 
     //font
     QFont stateTextFont("Segoe UI Black", 10, QFont::Bold, false);
-
-    //set utilities
-    bgPainter.setBrush(transparentBrush);
-    bgPainter.setPen(rectOutlinePen);
-    stateTextPainter.setPen(stateTextPen);
-    stateTextPainter.setFont(stateTextFont);
 
     //rect wrappers
     QRect stateTextWrapperRect(x, y, g_nodeWrapperWidth, g_stateTextHeight);
     QRect nodeWrapperRect(x, y,g_nodeWrapperWidth, g_nodeWrapperHeight);
     QRect nodeInfoRect(x, y + g_stateTextHeight, g_nodeWrapperWidth, g_nodeWrapperHeight - g_stateTextHeight);
 
-    bgPainter.drawRect(stateTextWrapperRect);
-    bgPainter.drawRect(nodeWrapperRect);
-    bgPainter.drawRect(nodeInfoRect);
-    stateTextPainter.drawText(stateTextWrapperRect, Qt::AlignHCenter | Qt::AlignVCenter, nodeState);
-    stateTextPainter.drawText(nodeInfoRect, Qt::AlignHCenter | Qt::AlignVCenter, nodeInfo);
+    //draw utils
+    painter.setBrush(transparentBrush);
+    painter.setPen(rectOutlinePen);
+    painter.drawRect(stateTextWrapperRect);
+    painter.drawRect(nodeWrapperRect);
+    painter.drawRect(nodeInfoRect);
+
+    painter.setPen(stateTextPen);
+    painter.setFont(stateTextFont);
+    painter.drawText(stateTextWrapperRect, Qt::AlignHCenter | Qt::AlignVCenter, nodeState);
+    painter.drawText(nodeInfoRect, Qt::AlignHCenter | Qt::AlignVCenter, nodeInfo);
 }
 
 void Drawing::paintConnector(int startX, int startY, int endX, int endY, bool isRoute)
@@ -144,6 +176,20 @@ void Drawing::paintConnector(int startX, int startY, int endX, int endY, bool is
     vecLines.push_back(line2);
     vecLines.push_back(line3);
     painter.drawLines(vecLines);
+}
+
+void Drawing::closeEvent(QCloseEvent* e)
+{
+    this->mapSliderDepth.clear();
+    this->g_drawLayout.clear();
+    for(auto s:this->vecSlider)
+    {
+        s->setParent(nullptr);
+        this->ui->vLayout->removeWidget(s);
+    }
+    this->ui->vLayout->update();
+    Astar::deleteTree(g_root);
+    g_root = nullptr;
 }
 
 Drawing::~Drawing()

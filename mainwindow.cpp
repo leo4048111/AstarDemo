@@ -7,7 +7,7 @@
 static Astar::EstimateMethod usedEstimateMethod = Astar::EstimateMethod::DIF_BITS;
 static bool shouldDraw = true;
 
-#define MAX_DIF_NUM 10
+#define MAX_DIF_NUM 0
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    //set window name
+    //set window title
     this->setWindowTitle("Astar Demo");
 
     this->puzzleStart.push_back(ui->block0);
