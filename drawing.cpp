@@ -25,6 +25,7 @@ Drawing::Drawing(QWidget *parent) :
 
     //set window title
     this->setWindowTitle("Search Tree Demo");
+    this->setWindowFlags(Qt::Dialog);
 
     this->setMaximumSize(99999, 99999);
     this->setMinimumSize(g_drawWindowWidth, g_drawWindowHeight);

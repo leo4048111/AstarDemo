@@ -99,6 +99,12 @@ namespace Astar
         return ret;
     }
 
+    //无启发函数
+    uint32_t estimate5(const uint64_t state, const uint64_t dst)
+    {
+        return NULL;
+    }
+
     //打印状态
     void printState(const uint64_t state)
     {
@@ -335,6 +341,9 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
         case Astar::EstimateMethod::HORIZONTAL_DISTANCE:
             pEstimateMethod = &estimate4;
             break;
+        case Astar::EstimateMethod::NO_ESTIMATION:
+            pEstimateMethod = &estimate5;
+            break;
         }
 
         INSERT_IF_VALID(root, src, NULL, pEstimateMethod, 0);
@@ -439,6 +448,9 @@ using FuncpEstimateMethod = uint32_t(*)(const uint64_t, const uint64_t);
             break;
         case Astar::EstimateMethod::HORIZONTAL_DISTANCE:
             pEstimateMethod = &estimate4;
+            break;
+        case Astar::EstimateMethod::NO_ESTIMATION:
+            pEstimateMethod = &estimate5;
             break;
         }
 

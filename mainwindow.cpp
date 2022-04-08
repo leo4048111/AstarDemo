@@ -7,7 +7,7 @@
 static Astar::EstimateMethod usedEstimateMethod = Astar::EstimateMethod::DIF_BITS;
 static bool shouldDraw = true;
 
-#define MAX_DIF_NUM 0
+#define MAX_DIF_NUM 1
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -77,12 +77,14 @@ MainWindow::MainWindow(QWidget *parent)
     QAction* actionUseEstimate1 = new QAction("Use Estimate1(Different bits)",this);
     QAction* actionUseEstimate2 = new QAction("Use Estimate2(Different nums)",this);
     QAction* actionUseEstimate3 = new QAction("Use Estimate3(Manhattan Distance)",this);
-    QAction* actionUseEstimate4 = new QAction("Use Estimate4(Horizontal Distance", this);
+    QAction* actionUseEstimate4 = new QAction("Use Estimate4(Horizontal Distance)", this);
+    QAction* actionUseEstimate5 = new QAction("Don't use estimate method", this);
     QAction* actionShowSearchTree = new QAction("Draw search tree", this);
     actionArr.push_back(actionUseEstimate1);
     actionArr.push_back(actionUseEstimate2);
     actionArr.push_back(actionUseEstimate3);
     actionArr.push_back(actionUseEstimate4);
+    actionArr.push_back(actionUseEstimate5);
     for(auto elem: actionArr) elem->setCheckable(true);
     actionUseEstimate1->setChecked(true);
     actionShowSearchTree->setCheckable(true);
@@ -126,12 +128,21 @@ MainWindow::MainWindow(QWidget *parent)
         LOG("Using estimate method:HORIZONTAL_DISTANCE.", Log::LogType::normal);
     });
 
+    connect(actionUseEstimate5, &QAction::triggered, [=]()
+    {
+        for(auto elem: actionArr) elem->setChecked(false);
+        actionUseEstimate5->setChecked(true);
+        usedEstimateMethod = Astar::EstimateMethod::NO_ESTIMATION;
+        LOG("Not using estimation method", Log::LogType::normal);
+    });
+
     //initialize submenu
     QMenu* subMenu = new QMenu(this);
     subMenu->addAction(actionUseEstimate1);
     subMenu->addAction(actionUseEstimate2);
     subMenu->addAction(actionUseEstimate3);
     subMenu->addAction(actionUseEstimate4);
+    subMenu->addAction(actionUseEstimate5);
     subMenu->addAction(actionShowSearchTree);
 
     ui->btnRun->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -512,5 +523,7 @@ void MainWindow::slot_findRoute()
 
 void MainWindow::slot_endDemo()
 {
+    if(this->drawWindow->isMinimized())
+        this->drawWindow->close();
     TRANSFER_STATE(MainWindow::State::IDLE);
 }

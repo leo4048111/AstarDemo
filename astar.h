@@ -55,7 +55,8 @@ namespace Astar
         DIF_BITS = 0,
         DIF_NUMS,
         MANHATTAN_DISTANCE,
-        HORIZONTAL_DISTANCE
+        HORIZONTAL_DISTANCE,
+        NO_ESTIMATION
     };
 
     //移动方向
@@ -86,6 +87,9 @@ namespace Astar
 
     //启发函数4：两个棋盘拉平后相同数码的线性距离
     uint32_t estimate4(const uint64_t state, const uint64_t dst);
+
+    //无启发函数
+    uint32_t estimate5(const uint64_t state, const uint64_t dst);
 
     //打印状态
     void printState(const uint64_t state);
