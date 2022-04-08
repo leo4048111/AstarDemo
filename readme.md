@@ -122,7 +122,7 @@ A*算法是一种启发式搜索算法，A*算法是一种启发式路径搜索�
 
 八数码问题包括了一个3x3的棋盘，棋盘上摆放着8个数字的棋子，留下一个空位。与空位相邻的棋子可以滑动到空位中。游戏的目的是要达到一个特定的目标状态。请见下图：
 
-![img](file:///img/clip_image002.jpg)
+![img](https://github.com/leo4048111/AstarDemo/blob/main/img/clip_image002.jpg)
 
 ### 1.1.3 实验简述
 
@@ -178,7 +178,7 @@ A*算法是一种启发式搜索算法，A*算法是一种启发式路径搜索�
 
 ​      程序的大致运行流程如下流程图所示：
 
- ![img](file:///img/clip_image004.jpg)
+ ![img](https://github.com/leo4048111/AstarDemo/blob/main/img/clip_image004.jpg)
 
 GUI界面的控件状态转换通过状态机实现，状态机图如下：
 
