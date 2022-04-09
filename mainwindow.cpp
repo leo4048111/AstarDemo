@@ -7,7 +7,7 @@
 static Astar::EstimateMethod usedEstimateMethod = Astar::EstimateMethod::DIF_BITS;
 static bool shouldDraw = true;
 
-#define MAX_DIF_NUM 1
+#define MAX_DIF_NUM 10
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
