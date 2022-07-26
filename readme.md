@@ -1,6 +1,6 @@
  
 
-## A\*算法求解8数码问题 作者：同济大学20级计算机系 2050250 2022.4.8 ##
+## Solving 8-puzzle problem with A-star algorithm, GUI implementation with Qt##
 
 摘 要
 
