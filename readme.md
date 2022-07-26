@@ -1,6 +1,6 @@
  
 
-## Solving 8-puzzle problem with A-star algorithm, GUI implementation with Qt##
+## Solving 8-puzzle problem with A-star algorithm, GUI implementation with Qt ##
 
 摘 要
 
